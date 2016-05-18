@@ -73,8 +73,33 @@ def test_fov_radec():
       * 0.01 arcsec in LON and LAT
     """
     # import IPython; IPython.embed()
+    return table
+
+
+def plot_fov_radec():
+    """Make plots to illustrate the RADEC FOV trafo differences."""
+    import matplotlib.pyplot as plt
+
+
+def test_fov_altaz():
+    """Test FOV ALTAZ coordinate transformations.
+    """
+    # Set up test data and astrometric frame (a.k.a. FOV frame)
+    # centered on the telescope pointing position
+    table = Table.read('hess_event_list.fits')
+    center = SkyCoord(table.meta['RA_PNT'], table.meta['DEC_PNT'], unit='deg')
+    aframe = center.astrometric_frame()
+
+    # TODO: this is more tricky, because AZ_PNT and ALT_PNT is changing with time.
+    # We first have to get full agreement with the normal ALTAZ to RADEC trafo
+    # before debugging the ALTAZ FOV event coordinates.
+
+    # import IPython; IPython.embed()
 
 
 if __name__ == '__main__':
     # copy_test_event_list()
-    test_fov_radec()
+    table2 = test_fov_radec()
+    table2.write('hess_event_list_2.fits')
+
+    # test_fov_altaz()
