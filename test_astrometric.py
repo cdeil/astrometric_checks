@@ -5,6 +5,7 @@ https://github.com/astropy/astropy/pull/4909
 https://github.com/astropy/astropy/issues/4931
 https://github.com/astropy/astropy/pull/4941
 """
+import numpy as np
 from astropy.table import Table
 from astropy.coordinates import SkyCoord, Angle
 
@@ -97,9 +98,49 @@ def test_fov_altaz():
     # import IPython; IPython.embed()
 
 
+def test_separations():
+    """Test if sky separations are the same in all spherical coordinate systems.
+
+    This is a simple consistency check.
+    Sky separations computed between consecutive event positions should
+    be the same in any spherical coordinate system.
+    """
+    table = Table.read('hess_event_list_2.fits')
+
+    def separation(table, lon_colname, lat_colname):
+        lon = np.array(table[lon_colname], dtype=np.float64)
+        lat = np.array(table[lat_colname], dtype=np.float64)
+        pos1 = SkyCoord(lon[:1], lat[:1], unit='deg')
+        pos2 = SkyCoord(lon[1:], lat[1:], unit='deg')
+        sep = pos1.separation(pos2).arcsec
+        res = np.empty(len(table), dtype=np.float64)
+        res[:-1] = sep
+        res[-1] = np.nan
+        return res
+
+    table['SEP_RADEC'] = separation(table, 'RA', 'DEC')
+
+    table['SEP_RADEC_FOV'] = separation(table, 'FOV_RADEC_LON', 'FOV_RADEC_LAT')
+    table['SEP_RADEC_FOV_MINUS_SEP_RADEC'] = table['SEP_RADEC_FOV'] - table['SEP_RADEC']
+    print('Max separation difference RADEC_FOV to RADEC: {} arcsec'.format(np.nanmax(table['SEP_RADEC_FOV_MINUS_SEP_RADEC'])))
+    # TODO: this currently gives 14.9 arcsec, i.e. there's an issue!
+
+    table['SEP_RADEC_FOV_ASTROPY'] = separation(table, 'FOV_RADEC_LON_ASTROPY', 'FOV_RADEC_LAT_ASTROPY')
+    table['SEP_RADEC_FOV_ASTROPY_MINUS_SEP_RADEC'] = table['SEP_RADEC_FOV_ASTROPY'] - table['SEP_RADEC']
+    print('Max separation difference RADEC_FOV_ASTROPY to RADEC: {} arcsec'.format(np.nanmax(table['SEP_RADEC_FOV_ASTROPY_MINUS_SEP_RADEC'])))
+    # 0.02 arcsec => OK
+
+    # Note: for ALTAZ this is not expected to match RADEC, because the earth is rotating between events.
+    # table['SEP_ALTAZ'] = separation(table, 'AZ', 'ALT')
+    # table['SEP_RADEC_MINUS_SEP_ALTAZ'] = table['SEP_RADEC'] - table['SEP_ALTAZ']
+    # print('Max separation difference RADEC to ALTAZ: {}'.format(np.nanmax(table['SEP_RADEC_MINUS_SEP_ALTAZ'])))
+
+    # table.info('stats')
+    # table.write('temp.fits', overwrite=True)
+
 if __name__ == '__main__':
     # copy_test_event_list()
-    table2 = test_fov_radec()
-    table2.write('hess_event_list_2.fits')
-
+    # table2 = test_fov_radec()
+    # table2.write('hess_event_list_2.fits')
     # test_fov_altaz()
+    test_separations()
