@@ -6,6 +6,7 @@ https://github.com/astropy/astropy/issues/4931
 https://github.com/astropy/astropy/pull/4941
 """
 import numpy as np
+from astropy.io import fits
 from astropy.table import Table
 from astropy.coordinates import SkyCoord, Angle
 
@@ -15,16 +16,17 @@ def copy_test_event_list():
 
     This isn't public data, so we cut out the photons from the Crab nebula.
     """
-    filename = '/Users/deil/work/hess-host-analyses/checks/coordinates_check/run_0018406_std_fullEnclosure_eventlist.fits'
-    table = Table.read(filename)
-    source_pos = SkyCoord(table.meta['RA_OBJ'], table.meta['DEC_OBJ'], unit='deg')
-    event_pos = SkyCoord(table['RA'], table['DEC'], unit='deg')
+    filename = '/Users/deil/work/hess-host-analyses/checks/pointing_check/run_0018406_std_fullEnclosure_eventlist.fits'
+    hdu_list = fits.open(filename)
+    table = hdu_list['EVENTS']
+    source_pos = SkyCoord(table.header['RA_OBJ'], table.header['DEC_OBJ'], unit='deg')
+    event_pos = SkyCoord(table.data['RA'], table.data['DEC'], unit='deg')
     sep = source_pos.separation(event_pos)
     mask = (sep > Angle(0.3, 'deg'))
-    table = table[mask]
+    hdu_list['EVENTS'] = fits.BinTableHDU(header=table.header, data=table.data[mask], name='EVENTS')
     filename = 'hess_event_list.fits'
     print('Writing {}'.format(filename))
-    table.write(filename)
+    hdu_list.writeto(filename, clobber=True)
 
 
 def test_fov_radec():
@@ -32,7 +34,7 @@ def test_fov_radec():
     """
     # Set up test data and astrometric frame (a.k.a. FOV frame)
     # centered on the telescope pointing position
-    table = Table.read('hess_event_list.fits')
+    table = Table.read('hess_event_list.fits', hdu='EVENTS')
     center = SkyCoord(table.meta['RA_PNT'], table.meta['DEC_PNT'], unit='deg')
     aframe = center.astrometric_frame()
 
@@ -53,7 +55,8 @@ def test_fov_radec():
     table['DEC_DIFF'] = Angle(table['DEC_ASTROPY'] - table['DEC'], 'deg').to('arcsec')
 
     # Check results
-    table.info('stats')
+    # table.info('stats')
+
     """
     FOV_RADEC_LON_ASTROPY    0.0443400478952    1.58878237603   -35.1578248604   21.7907000503
     FOV_RADEC_LAT_ASTROPY   -0.0177905539829    1.57634999964   -28.7981936822     17.18667566
@@ -140,7 +143,9 @@ def test_separations():
 
 if __name__ == '__main__':
     # copy_test_event_list()
-    # table2 = test_fov_radec()
-    # table2.write('hess_event_list_2.fits')
-    # test_fov_altaz()
+    table2 = test_fov_radec()
+    filename = 'hess_event_list_2.fits'
+    print('Writing {}'.format(filename))
+    table2.write(filename, overwrite=True)
     test_separations()
+    # test_fov_altaz()
