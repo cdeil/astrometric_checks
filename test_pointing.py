@@ -1,9 +1,4 @@
-"""
-Basic class and checks for pointing table.
-
-TODO: move to Gammapy.
-
-Usage: py.test test_pointing.py
+"""Checks of the pointing table from HESS.
 """
 from gammapy.data import PointingInfo
 
