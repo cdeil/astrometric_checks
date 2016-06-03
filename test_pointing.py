@@ -13,7 +13,7 @@ def check_pointing_info():
 
     sky_diff = altaz_astropy.separation(altaz_hess).to('arcsec')
     az_diff = (altaz_astropy.az - altaz_hess.az).to('arcsec')
-    alt_diff = (altaz_astropy.alt - altaz_astropy.alt).to('arcsec')
+    alt_diff = (altaz_astropy.alt - altaz_hess.alt).to('arcsec')
     hourangle_diff = az_diff.to('hourangle')
 
     print('sky_diff:  ', sky_diff.min(), sky_diff.max())
@@ -27,9 +27,9 @@ def check_pointing_info():
 """
 Current output of check_pointing_info.
 
-Looks like the times are off by about one minute.
-Changing to TIMESYS=UTC in the header gives a different time offset (-20 sec)
+The cause of the difference is unknown.
 
+Discussion of this issue is here: https://github.com/gammasky/hess-host-analyses/issues/47
 
 Pointing info:
 
@@ -56,7 +56,7 @@ ALTAZ: 3.18474 42.1431 deg
 
 sky_diff:   697.907arcsec 697.909arcsec
  az_diff:   911.484arcsec 939.596arcsec
-alt_diff:   0arcsec 0arcsec
+alt_diff:   -137.97arcsec -40.2693arcsec
 time diff:  0h01m00.7656s 0h01m02.6397s
 """
 
