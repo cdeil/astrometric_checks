@@ -29,18 +29,18 @@ def copy_test_event_list():
     hdu_list.writeto(filename, clobber=True)
 
 
-def test_fov_radec():
+def add_astropy_radec_coordinates(table):
     """Test FOV RADEC coordinate transformations.
     """
     # Set up test data and astrometric frame (a.k.a. FOV frame)
     # centered on the telescope pointing position
-    table = Table.read('hess_event_list.fits', hdu='EVENTS')
     center = SkyCoord(table.meta['RA_PNT'], table.meta['DEC_PNT'], unit='deg')
-    aframe = center.astrometric_frame()
+    aframe = center.skyoffset_frame()
 
     # Transform: RADEC -> FOV_RADEC
     event_radec = SkyCoord(table['RA'], table['DEC'], unit='deg')
     event_fov = event_radec.transform_to(aframe)
+    # event_fov = event_radec.spherical_offsets_to(center)
     table['FOV_RADEC_LON_ASTROPY'] = event_fov.data.lon.wrap_at('180 deg').to('deg')
     table['FOV_RADEC_LAT_ASTROPY'] = event_fov.data.lat.to('deg')
     table['FOV_RADEC_LON_DIFF'] = Angle(table['FOV_RADEC_LON_ASTROPY'] - table['FOV_RADEC_LON'], 'deg').to('arcsec')
@@ -77,6 +77,34 @@ def test_fov_radec():
       * 0.01 arcsec in LON and LAT
     """
     # import IPython; IPython.embed()
+    return table
+
+def add_astropy_altaz_coordinates(table):
+    """Test FOV RADEC coordinate transformations.
+    """
+    # Set up test data and astrometric frame (a.k.a. FOV frame)
+    # centered on the telescope pointing position
+    from gammapy.data import EventList
+    event_list = EventList(table)
+    # print(event_list)
+
+    center = event_list.pointing_radec.transform_to(event_list.altaz.frame)
+
+    # import IPython; IPython.embed()
+
+    # center = SkyCoord(table.meta['RA_PNT'], table.meta['DEC_PNT'], unit='deg')
+    aframe = center.skyoffset_frame()
+    #
+    # # Transform: RADEC -> FOV_RADEC
+    # event_radec = SkyCoord(table['RA'], table['DEC'], unit='deg')
+    event_pos = event_list.altaz
+    event_fov = event_pos.transform_to(aframe)
+    # event_fov = event_radec.spherical_offsets_to(center)
+    table['FOV_ALTAZ_LON_ASTROPY'] = event_fov.data.lon.wrap_at('180 deg').to('deg')
+    table['FOV_ALTAZ_LAT_ASTROPY'] = event_fov.data.lat.to('deg')
+    table['FOV_ALTAZ_LON_DIFF'] = Angle(table['FOV_ALTAZ_LON_ASTROPY'] - table['FOV_ALTAZ_LON'], 'deg').to('arcsec')
+    table['FOV_ALTAZ_LAT_DIFF'] = Angle(table['FOV_ALTAZ_LAT_ASTROPY'] - table['FOV_ALTAZ_LAT'], 'deg').to('arcsec')
+
     return table
 
 
@@ -143,9 +171,12 @@ def test_separations():
 
 if __name__ == '__main__':
     # copy_test_event_list()
-    table2 = test_fov_radec()
-    filename = 'hess_event_list_2.fits'
+    table = Table.read('hess_event_list.fits', hdu='EVENTS')
+    table2 = add_astropy_radec_coordinates(table)
+    table3 = add_astropy_altaz_coordinates(table2)
+    table3.info('stats')
+    filename = 'hess_event_list_3.fits'
     print('Writing {}'.format(filename))
-    table2.write(filename, overwrite=True)
-    test_separations()
+    table3.write(filename, overwrite=True)
+    # test_separations()
     # test_fov_altaz()
